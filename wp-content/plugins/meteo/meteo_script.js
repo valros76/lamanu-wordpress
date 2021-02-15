@@ -4,6 +4,22 @@ window.addEventListener("DOMContentLoaded", (e) => {
     return this.charAt(0).toUpperCase() + this.slice(1);
   }
 
+  
+  if(isNaN(document.querySelector('#city_id').value)){
+    document.getElementById('submit_meteo').setAttribute('disabled', true)
+  }else{
+    document.getElementById('submit_meteo').removeAttribute('disabled')
+  }
+  document.querySelector('#city_id').addEventListener('keyup', (e)=>{
+    if(isNaN(document.querySelector('#city_id').value)){
+      document.querySelector('#city_id').style.backgroundColor = "#e66"
+      document.getElementById('submit_meteo').setAttribute('disabled', true)
+    }else{
+      document.querySelector('#city_id').style.backgroundColor = "#fff"
+      document.getElementById('submit_meteo').removeAttribute('disabled')
+    }
+  })
+
   let createWidget = (id_city) => {
     if (document.querySelector('#widget_preview')) {
       let widget = `<div id="openweathermap-widget-15"></div>`
@@ -22,9 +38,9 @@ window.addEventListener("DOMContentLoaded", (e) => {
     }
   }
 
-  meteo_form.addEventListener("submit", (e) => {
-    e.preventDefault()
-    let api_key = document.getElementById('api_key').value
+document.querySelector('#city_id').addEventListener('blur', (e)=>{
+  e.preventDefault()
+  let api_key = document.getElementById('api_key').value
     let city = document.getElementById('city_id').value
     var url;
     if (isNaN(city)) {
@@ -36,24 +52,61 @@ window.addEventListener("DOMContentLoaded", (e) => {
 
     var city_id;
     fetch(url, {
-      method: 'POST',
-      'action': 'meteo_widget'
+      method: 'POST'
     })
       .then(response => response.json())
       .then((response) => {
         if (isNaN(city)) {
           // alert(JSON.stringify(response.id))
           city_id = response.id
+          city.value = city_id
         } else {
           // alert(JSON.stringify(response))
           city_id = city
         }
+        if(parseInt(response.cod) != 404){
+          document.querySelector('#city_id').value = city_id
+        }
+        if(isNaN(document.querySelector('#city_id').value)){
+          document.querySelector('#city_id').style.backgroundColor = "#e66"
+          document.getElementById('submit_meteo').setAttribute('disabled', true)
+        }else{
+          document.querySelector('#city_id').style.backgroundColor = "#fff"
+          document.getElementById('submit_meteo').removeAttribute('disabled')
+        }
+      })
+      
+})
 
+  meteo_form.addEventListener("submit", (e) => {
+    let api_key = document.getElementById('api_key').value
+    let city = document.getElementById('city_id').value
+    var url;
+    if (isNaN(city)) {
+      url = `https://api.openweathermap.org/data/2.5/weather?q=${city.capitalize() + ',fr'}&appid=${api_key}&units=metric&lang=fr`
+    } else {
+      url = `https://api.openweathermap.org/data/2.5/weather?id=${parseInt(city)}&appid=${api_key}&units=metric&lang=fr`
+    }
+
+    var city_id;
+    fetch(url, {
+      method: 'POST'
+    })
+      .then(response => response.json())
+      .then((response) => {
+        if (isNaN(city)) {
+          // alert(JSON.stringify(response.id))
+          city_id = response.id
+          city.value = city_id
+        } else {
+          // alert(JSON.stringify(response))
+          city_id = city
+        }
         if (!document.querySelector('#openweathermap-widget-15')) {
           // document.querySelector('#short-code').textContent = createWidget(city_id)
           createWidget(city_id)
-        }else{
-          document.querySelector('#widget_preview').removeChild(document.querySelector('#openweathermap-widget-15'))
+        } else {
+          document.querySelector('#openweathermap-widget-15').remove()
           createWidget(city_id)
         }
       })

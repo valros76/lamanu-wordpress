@@ -18,6 +18,9 @@ Author URI: https://webdevoo.com
  */
 defined('ABSPATH') or die('Vous n\'êtes pas autorisé à accéder à ce fichier !');
 $meteo_debug = false;
+// Enable shortcodes in widget text 
+add_filter('widget_text', 'shortcode_unautop');
+add_filter('widget_text', 'do_shortcode', 11);
 
 // Créer une méthode d'activation
 // register_activation_hook(__FILE__, function () {
@@ -64,60 +67,58 @@ function show_meteo()
       <?php
       settings_fields('meteo_option_group');
       do_settings_sections('meteo');
-      submit_button('Valider');
+      echo '
+      <p>Pour débloquer le bouton d\'envoi si vous ajoutez un nom de ville (Française), cliquez hors du champs ID de la ville.</p>';
+      $submit_meteo_attribute = array( 'id' => 'submit_meteo' );
+      submit_button('Valider', 'primary', 'submit', true, $submit_meteo_attribute);
       ?>
    </form>
-   <?php
+<?php
 
    if (!empty($options_values)) {
-
-      function meteo_shortcode($attr = null)
-      {
-         $shortcode_options = get_option('meteo_option_name');
-         if (!empty($shotcode_options)) {
-            extract(shortcode_atts(array(
-               'api_key' => $attr['api_key'] ?? '',
-               'city_id' => $attr['city_id'] ?? '',
-               'widget_type' => $attr['widget_type'] ?? ''
-            ), $shortcode_options));
-            ob_start();
-            ;?>
-            <div id=`${<?= $widget_type; ?>}`></div>
-            <script async>
-               window.myWidgetParam ? window.myWidgetParam : window.myWidgetParam = [];
-               window.myWidgetParam.push({
-                  id: 15,
-                  cityid: `${<?= $city_id; ?>}`,
-                  appid: `${<?= $api_key; ?>}`,
-                  units: "metric",
-                  containerid: `${<?= $widget_type; ?>}`,
-               });
-               (function() {
-                  var script = document.createElement("script");
-                  script.async = true;
-                  script.src = "//openweathermap.org/themes/openweathermap/assets/vendor/owm/js/weather-widget-generator.js";
-                  var s = document.getElementsByTagName("script")[0];
-                  s.parentNode.insertBefore(script, s);
-               })();
-            </script>';
-         <?php
-            return ob_get_clean();
-         }
-      }
-      add_action('wp_ajax_meteo_widget', 'meteo_shortcode');
-      add_shortcode('meteo_widget', 'meteo_shortcode');
-      add_action('init', 'meteo_shorcode');
       /**
        * Utiliser le shortcode se fera avec do_shortcode('meteo_widget')
        */
       if (shortcode_exists('meteo_widget')) {
          echo '<p id="widget_preview">Copiez ce code dans un article pour afficher le widget : <b id="short-code">[' . do_shortcode('meteo_widget') . ']</b></p>';
+         echo do_shortcode('[meteo_widget]');
       } else {
          echo '<p id="widget_preview">Copiez ce code dans un article pour afficher le widget : <b id="short-code"></b></p>';
       }
-      var_dump(do_shortcode('meteo_widget'));
    };
 }
+function meteo_shortcode()
+{
+   $shortcode_options = get_option('meteo_option_name');
+   if ($shortcode_options != false) {
+      extract(shortcode_atts(array(
+         'api_key' => $shortcode_options['api_key'] ?? 'e849a1bb2385f437c9ab3ce45ea1a5a1',
+         'city_id' => is_numeric($shortcode_options['city_id']) ? $shortcode_options['city_id'] : '3038789',
+         'widget_type' => 'openweathermap-widget-15'
+      ), $shortcode_options));
+      return '<div id="' . $widget_type . '"></div>
+   <script async>
+      window.myWidgetParam ? window.myWidgetParam : window.myWidgetParam = [];
+      window.myWidgetParam.push({
+         id: 15,
+         cityid: "' . $city_id . '",
+         appid: "' . $api_key . '",
+         units: "metric",
+         containerid: "' . $widget_type . '",
+      });
+      (function() {
+         var script = document.createElement("script");
+         script.async = true;
+         script.src = "//openweathermap.org/themes/openweathermap/assets/vendor/owm/js/weather-widget-generator.js";
+         var s = document.getElementsByTagName("script")[0];
+         s.parentNode.insertBefore(script, s);
+      })();
+   </script>';
+   }
+}
+// add_action('wp_ajax_update_meteo_options', 'update_meteo_options');
+add_shortcode('meteo_widget', 'meteo_shortcode');
+
 
 function api_key_callback()
 {
@@ -125,7 +126,7 @@ function api_key_callback()
 }
 function city_code_callback()
 {
-   printf('<input type="text" name="meteo_option_name[city_id]" id="city_id" value="%s" placeholder="%s"/>', '3038789','3038789');
+   printf('<input type="text" name="meteo_option_name[city_id]" id="city_id" value="%s" placeholder="%s"/>', '3038789', '3038789');
 }
 function widget_type_callback()
 {
